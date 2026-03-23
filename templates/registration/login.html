@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Login — InvSys{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: calc(100vh - 120px);">
+    <div class="col-md-5">
+        <div class="main-card shadow-lg p-5 border-0 rounded-4">
+            <div class="text-center mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-primary text-white rounded-circle mb-3 shadow" style="width: 70px; height: 70px;">
+                    <i class="bi bi-shield-lock-fill fs-2"></i>
+                </div>
+                <h3 class="fw-bold text-primary">Secure Access</h3>
+                <p class="text-muted small">Enter your credentials to manage inventory</p>
+            </div>
+
+            {% if form.errors %}
+            <div class="alert alert-danger shadow-sm py-2 px-3 border-0 d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                <span>Invalid username or password.</span>
+            </div>
+            {% endif %}
+
+            <form method="POST">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label class="form-label text-dark fw-bold">Username</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-person text-secondary"></i></span>
+                        <input type="text" name="username" class="form-control border-start-0 ps-0" placeholder="e.g. admin" required>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label text-dark fw-bold">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-key text-secondary"></i></span>
+                        <input type="password" name="password" class="form-control border-start-0 ps-0" placeholder="••••••••" required>
+                    </div>
+                </div>
+
+                <input type="hidden" name="next" value="{{ next }}">
+
+                <button type="submit" class="btn btn-primary w-100 py-3 fw-bold shadow">
+                    <i class="bi bi-box-arrow-in-right me-2"></i> SIGN IN
+                </button>
+            </form>
+
+            <div class="text-center mt-4">
+                <p class="text-muted small mb-0">Forgot your password? <a href="#" class="text-primary text-decoration-none fw-semibold">Contact Admin</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Hide the default sidebar on login page */
+    .sidebar { display: none !important; }
+    .main-content { margin-left: 0 !important; }
+</style>
+{% endblock %}

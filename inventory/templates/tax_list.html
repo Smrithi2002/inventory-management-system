@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}Taxes — InvSys{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2><i class="bi bi-percent me-2"></i>Tax Configuration</h2>
+    <a href="{% url 'add_tax' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i> Add Tax</a>
+</div>
+
+<div class="main-card">
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Percentage</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tax in taxes %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td class="fw-semibold">{{ tax.name }}</td>
+                <td>{{ tax.percentage }}%</td>
+                <td>
+                    {% if tax.is_compound %}
+                      <span class="badge bg-warning text-dark">Compound (on top)</span>
+                    {% else %}
+                        <span class="badge bg-success">Single (base)</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if tax.is_active %}
+                        <span class="badge-active">Active</span>
+                    {% else %}
+                        <span class="badge-inactive">Inactive</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-btns">
+                        <a href="{% url 'edit_tax' tax.id %}" class="btn btn-outline-secondary btn-sm" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a href="{% url 'toggle_tax' tax.id %}" class="btn btn-sm {% if tax.is_active %}btn-warning{% else %}btn-success{% endif %}" title="{% if tax.is_active %}Deactivate{% else %}Activate{% endif %}">
+                            <i class="bi {% if tax.is_active %}bi-pause-fill{% else %}bi-play-fill{% endif %}"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center text-muted py-4">No taxes defined yet. <a href="{% url 'add_tax' %}">Add one</a>.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

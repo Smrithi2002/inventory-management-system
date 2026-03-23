@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}Inventory — InvSys{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2><i class="bi bi-clipboard-data-fill me-2"></i>Inventory Stock</h2>
+    <span class="text-muted" style="font-size: 0.85rem;">FIFO: Sorted by earliest expiry first</span>
+</div>
+
+<!-- Usable Stock -->
+<div class="main-card">
+    <h5 class="fw-bold mb-3" style="color: var(--success);"><i class="bi bi-check-circle-fill me-1"></i> Usable Stock</h5>
+
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Product</th>
+                <th>SKU</th>
+                <th>Lot Number</th>
+                <th>Quantity</th>
+                <th>Expiry Date</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in usable_stock %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td class="fw-semibold">{{ item.product.name }}</td>
+                <td><code>{{ item.product.sku }}</code></td>
+                <td>{{ item.lot_number|default:"—" }}</td>
+                <td><strong>{{ item.quantity }}</strong></td>
+                <td>
+                    {% if item.expiry_date %}
+                        {{ item.expiry_date }}
+                    {% else %}
+                        <span class="text-muted">N/A</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'quick_purchase_product' item.product.id %}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-plus-lg me-1"></i> Restock
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center text-muted py-3">No usable stock available.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Expired Stock -->
+{% if expired_stock %}
+<div class="main-card" style="border-left: 4px solid var(--danger);">
+    <h5 class="fw-bold mb-3" style="color: var(--danger);"><i class="bi bi-exclamation-triangle-fill me-1"></i> Expired Lots (Excluded from Usable Stock)</h5>
+
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Product</th>
+                <th>SKU</th>
+                <th>Lot Number</th>
+                <th>Quantity</th>
+                <th>Expired On</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in expired_stock %}
+            <tr style="opacity: 0.7;">
+                <td>{{ forloop.counter }}</td>
+                <td class="fw-semibold">{{ item.product.name }}</td>
+                <td><code>{{ item.product.sku }}</code></td>
+                <td>{{ item.lot_number|default:"—" }}</td>
+                <td>{{ item.quantity }}</td>
+                <td><span class="badge-expired">{{ item.expiry_date }}</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% block extra_js %}
+<script>
+    // If we arriving here after a successful purchase, clear the draft
+    document.addEventListener('DOMContentLoaded', () => {
+        const successAlert = document.querySelector('.alert-success');
+        if (successAlert && successAlert.textContent.includes('Purchase successful')) {
+            localStorage.removeItem('quick_purchase_draft');
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

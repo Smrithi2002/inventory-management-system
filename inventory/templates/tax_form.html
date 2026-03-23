@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}{% if tax %}Edit Tax{% else %}Add Tax{% endif %} — InvSys{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2><i class="bi bi-percent me-2"></i>{% if tax %}Edit Tax{% else %}Add Tax{% endif %}</h2>
+    <a href="{% url 'tax_list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>
+        Back</a>
+</div>
+
+<div class="main-card">
+    {% if error %}
+    <div class="alert alert-danger"><i class="bi bi-exclamation-circle me-1"></i> {{ error }}</div>
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Tax Name</label>
+                <input type="text" name="name" class="form-control"
+                    value="{% if tax %}{{ tax.name }}{% elif form_data %}{{ form_data.name }}{% endif %}"
+                    placeholder="e.g. GST" required>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Percentage (%)</label>
+                <input type="number" name="percentage" class="form-control" step="0.01"
+                    value="{% if tax %}{{ tax.percentage }}{% elif form_data %}{{ form_data.percentage }}{% endif %}"
+                    placeholder="e.g. 18" required>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Order Priority</label>
+                <input type="number" name="order" class="form-control" min="1"
+                    value="{% if tax %}{{ tax.order }}{% elif form_data %}{{ form_data.order|default:1 }}{% else %}1{% endif %}"
+                    required>
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-check form-switch mt-2">
+                    <input class="form-check-input" type="checkbox" name="is_compound" id="is_compound" {% if tax and tax.is_compound %}checked{% endif %}>
+                    <label class="form-check-label" for="is_compound">Compound Tax</label>
+                </div>
+                <small class="text-muted">
+                    <strong>When to use:</strong><br>
+                    ✔ Single Tax → Applied directly on price (e.g. GST, CGST, SGST)<br>
+                    ✔ Compound Tax → Applied after other taxes (e.g. surcharge, cess)<br>
+                    <span class="text-danger">Do NOT enable for normal GST taxes.</span>
+                </small>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i> {% if tax %}Update{% else %}Save{% endif %}</button>
+            <a href="{% url 'tax_list' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.getElementById('is_compound').addEventListener('change', function() {
+    const orderField = document.querySelector('input[name="order"]');
+    if (this.checked && orderField.value == 1) {
+        orderField.value = 2;
+    }
+});
+</script>
+
+{% endblock %}

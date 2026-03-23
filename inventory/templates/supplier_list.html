@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}Suppliers — InvSys{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2><i class="bi bi-truck me-2"></i>Suppliers</h2>
+    <a href="{% url 'add_supplier' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i> Add Supplier</a>
+</div>
+
+<div class="main-card">
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Contact</th>
+                <th>Email</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for supplier in suppliers %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td class="fw-semibold">{{ supplier.name }}</td>
+                <td>{{ supplier.contact|default:"—" }}</td>
+                <td>{{ supplier.email|default:"—" }}</td>
+                <td>
+                    <a href="{% url 'edit_supplier' supplier.id %}" class="btn btn-outline-secondary btn-sm" title="Edit">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center text-muted py-4">No suppliers yet. <a href="{% url 'add_supplier' %}">Add one</a>.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

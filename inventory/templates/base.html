@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Inventory Purchase Module{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --success: #10b981;
+            --success-dark: #059669;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --sidebar-bg: #1e293b;
+            --sidebar-text: #cbd5e1;
+            --sidebar-active: #4f46e5;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-primary);
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            height: 100vh;
+            background: var(--sidebar-bg);
+            padding: 1.5rem 0;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-brand {
+            color: #fff;
+            font-weight: 800;
+            font-size: 1.25rem;
+            padding: 0 1.5rem 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sidebar-section {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: rgba(255, 255, 255, 0.3);
+            font-weight: 600;
+            margin-top: 0.75rem;
+        }
+
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.65rem 1.5rem;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar a:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            border-left-color: var(--primary);
+        }
+
+        .sidebar a.active {
+            background: rgba(79, 70, 229, 0.15);
+            color: #fff;
+            border-left-color: var(--primary);
+        }
+
+        .sidebar a i {
+            font-size: 1.1rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* ── Main Content ── */
+        .main-content {
+            margin-left: 250px;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        /* ── Cards ── */
+        .main-card {
+            background: var(--card-bg);
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .page-header h2 {
+            font-weight: 700;
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
+        /* ── Buttons ── */
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: #fff;
+        }
+
+        .btn-success:hover {
+            background: var(--success-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: #fff;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .btn-outline-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .btn-outline-secondary:hover {
+            background: var(--bg);
+        }
+
+        .btn-sm {
+            padding: 0.35rem 0.75rem;
+            font-size: 0.8rem;
+        }
+
+        /* ── Table ── */
+        .table {
+            font-size: 0.875rem;
+        }
+
+        .table thead th {
+            background: var(--bg);
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            padding: 0.75rem 1rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .table tbody td {
+            padding: 0.75rem 1rem;
+            vertical-align: middle;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .table tbody tr:hover {
+            background: rgba(79, 70, 229, 0.02);
+        }
+
+        /* ── Badges ── */
+        .badge-active {
+            background: #d1fae5;
+            color: #065f46;
+            font-weight: 600;
+            padding: 0.3em 0.7em;
+            border-radius: 6px;
+            font-size: 0.75rem;
+        }
+
+        .badge-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+            font-weight: 600;
+            padding: 0.3em 0.7em;
+            border-radius: 6px;
+            font-size: 0.75rem;
+        }
+
+        .badge-posted {
+            background: #dbeafe;
+            color: #1e40af;
+            font-weight: 600;
+            padding: 0.3em 0.7em;
+            border-radius: 6px;
+            font-size: 0.75rem;
+        }
+
+        .badge-pending {
+            background: #fef3c7;
+            color: #92400e;
+            font-weight: 600;
+            padding: 0.3em 0.7em;
+            border-radius: 6px;
+            font-size: 0.75rem;
+        }
+
+        .badge-expired {
+            background: #fee2e2;
+            color: #991b1b;
+            font-weight: 600;
+            padding: 0.3em 0.7em;
+            border-radius: 6px;
+            font-size: 0.75rem;
+        }
+
+        /* ── Stat Cards ── */
+        .stat-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .stat-icon.blue {
+            background: #ede9fe;
+            color: var(--primary);
+        }
+
+        .stat-icon.green {
+            background: #d1fae5;
+            color: var(--success);
+        }
+
+        .stat-icon.yellow {
+            background: #fef3c7;
+            color: var(--warning);
+        }
+
+        .stat-icon.red {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* ── Form Controls ── */
+        .form-control,
+        .form-select {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.6rem 0.85rem;
+            font-size: 0.875rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .form-label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.35rem;
+        }
+
+        /* ── Alerts / Messages ── */
+        .alert {
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            padding: 0.75rem 1rem;
+        }
+
+        /* ── Toggle Switch ── */
+        .form-check-input:checked {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* ── Action buttons group ── */
+        .action-btns {
+            display: flex;
+            gap: 0.35rem;
+            align-items: center;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <i class="bi bi-box-seam-fill"></i> InvSys
+        </div>
+
+        <div class="sidebar-section">Overview</div>
+        <a href="{% url 'dashboard' %}"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
+
+        <div class="sidebar-section">Master Data</div>
+        <a href="{% url 'product_list' %}"><i class="bi bi-box-fill"></i> Products</a>
+        <a href="{% url 'tax_list' %}"><i class="bi bi-percent"></i> Taxes</a>
+        <a href="{% url 'supplier_list' %}"><i class="bi bi-truck"></i> Suppliers</a>
+
+        <div class="sidebar-section">Transactions</div>
+        <a href="{% url 'quick_purchase' %}"><i class="bi bi-lightning-fill"></i> New Purchase</a>
+        <a href="{% url 'voucher_list' %}"><i class="bi bi-clock-history"></i> Voucher History</a>
+
+        <div class="sidebar-section">Stock</div>
+        <a href="{% url 'inventory_list' %}"><i class="bi bi-clipboard-data-fill"></i> Inventory</a>
+
+        <div class="sidebar-section mt-auto">Logged in as</div>
+        <div class="px-3 py-1 text-white small fw-bold">
+            <i class="bi bi-person-circle me-1"></i> {{ user.username|title }}
+        </div>
+        <form action="{% url 'logout' %}" method="post" class="px-3 pb-3">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger w-100 btn-sm mt-2 shadow-sm">
+                <i class="bi bi-box-arrow-left me-1"></i> Logout
+            </button>
+        </form>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Flash Messages -->
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

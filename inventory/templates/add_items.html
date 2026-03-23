@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% block title %}Add Items — PV-{{ voucher.id }} — InvSys{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2><i class="bi bi-cart-plus-fill me-2"></i>Add Line Items</h2>
+        <small class="text-muted">Voucher: <strong>{{ voucher.invoice_number }}</strong> | Supplier: {{ voucher.supplier.name }} | Date: {{ voucher.date }}</small>
+    </div>
+    <a href="{% url 'voucher_list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Back</a>
+</div>
+
+{% if error %}
+<div class="alert alert-danger"><i class="bi bi-exclamation-circle me-1"></i> {{ error }}</div>
+{% endif %}
+
+<!-- Add Item Form -->
+<div class="main-card">
+    <h5 class="fw-bold mb-3"><i class="bi bi-plus-circle me-1"></i> Add Item</h5>
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Product</label>
+                <select name="product" id="product-select" class="form-select" required>
+                    <option value="">— Select Product —</option>
+                    {% for product in products %}
+                        <option value="{{ product.id }}"
+                                data-lot-tracked="{{ product.is_lot_tracked|yesno:'true,false' }}">
+                            {{ product.name }} ({{ product.sku }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Quantity</label>
+                <input type="number" name="quantity" class="form-control" min="1" placeholder="0" required>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Unit Price (₹)</label>
+                <input type="number" name="price" class="form-control" step="0.01" min="0.01" placeholder="0.00" required>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Discount (₹)</label>
+                <input type="number" name="discount" class="form-control" step="0.01" value="0" placeholder="0.00">
+            </div>
+        </div>
+
+        <!-- Lot & Expiry fields (shown dynamically for lot-tracked products) -->
+        <div class="row g-3 mt-1" id="lot-fields" style="display: none;">
+            <div class="col-md-3">
+                <label class="form-label">Lot Number <span class="text-danger">*</span></label>
+                <input type="text" name="lot_number" id="lot_number" class="form-control" placeholder="e.g. LOT-2026-A1">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Expiry Date <span class="text-danger">*</span></label>
+                <input type="date" name="expiry_date" id="expiry_date" class="form-control">
+                <small class="text-muted">Must be after invoice date ({{ voucher.date }})</small>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Add Item</button>
+        </div>
+    </form>
+</div>
+
+<!-- Line Items Table -->
+<div class="main-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-list-ul me-1"></i> Line Items</h5>
+        <span class="fw-bold">Voucher Total: ₹{{ voucher.total_amount }}</span>
+    </div>
+
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Discount</th>
+                <th>Tax</th>
+                <th>Total</th>
+                <th>Lot</th>
+                <th>Expiry</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td class="fw-semibold">{{ item.product.name }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>₹{{ item.price }}</td>
+                <td>₹{{ item.discount }}</td>
+                <td>₹{{ item.tax_amount }}</td>
+                <td class="fw-semibold">₹{{ item.total }}</td>
+                <td>{{ item.lot_number|default:"—" }}</td>
+                <td>{{ item.expiry_date|default:"—" }}</td>
+                <td>
+                    <a href="{% url 'delete_item' item.id %}" class="btn btn-danger btn-sm"
+                       onclick="return confirm('Remove this item?');" title="Remove">
+                        <i class="bi bi-trash"></i>
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" class="text-center text-muted py-3">No items added yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Post Voucher Button -->
+{% if items %}
+<div class="d-flex justify-content-end">
+    <a href="{% url 'post_voucher' voucher.id %}" class="btn btn-success btn-lg"
+       onclick="return confirm('Post this voucher? It will become immutable and inventory will be updated.');">
+        <i class="bi bi-check-circle-fill me-1"></i> POST VOUCHER
+    </a>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Show/hide lot fields based on product selection
+    const productSelect = document.getElementById('product-select');
+    const lotFields = document.getElementById('lot-fields');
+    const lotNumber = document.getElementById('lot_number');
+    const expiryDate = document.getElementById('expiry_date');
+
+    productSelect.addEventListener('change', function() {
+        const selected = this.options[this.selectedIndex];
+        const isLotTracked = selected.getAttribute('data-lot-tracked') === 'true';
+
+        if (isLotTracked) {
+            lotFields.style.display = 'flex';
+            lotNumber.required = true;
+            expiryDate.required = true;
+        } else {
+            lotFields.style.display = 'none';
+            lotNumber.required = false;
+            expiryDate.required = false;
+            lotNumber.value = '';
+            expiryDate.value = '';
+        }
+    });
+</script>
+{% endblock %}

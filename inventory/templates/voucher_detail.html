@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}Voucher Detail — PV-{{ voucher.id }} — InvSys{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2><i class="bi bi-receipt me-2"></i>Voucher Detail</h2>
+        <small class="text-muted">This voucher has been posted and is <strong>immutable</strong>.</small>
+    </div>
+    <a href="{% url 'voucher_list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Back</a>
+</div>
+
+<div class="main-card">
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <span class="form-label d-block">Voucher ID</span>
+            <strong>PV-{{ voucher.id }}</strong>
+        </div>
+        <div class="col-md-3">
+            <span class="form-label d-block">Invoice Number</span>
+            <strong>{{ voucher.invoice_number }}</strong>
+        </div>
+        <div class="col-md-3">
+            <span class="form-label d-block">Supplier</span>
+            <strong>{{ voucher.supplier.name }}</strong>
+        </div>
+        <div class="col-md-3">
+            <span class="form-label d-block">Date</span>
+            <strong>{{ voucher.date }}</strong>
+        </div>
+    </div>
+
+    <hr class="text-muted opacity-25">
+
+    <h5 class="fw-bold mb-3">Line Items</h5>
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Discount</th>
+                <th>Tax</th>
+                <th>Total</th>
+                <th>Lot</th>
+                <th>Expiry</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td class="fw-semibold">{{ item.product.name }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>₹{{ item.price }}</td>
+                <td>₹{{ item.discount }}</td>
+                <td>₹{{ item.tax_amount }}</td>
+                <td class="fw-semibold">₹{{ item.total }}</td>
+                <td>{{ item.lot_number|default:"—" }}</td>
+                <td>{{ item.expiry_date|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="5" class="text-end fw-bold">Voucher Total:</td>
+                <td class="fw-bold">₹{{ voucher.total_amount }}</td>
+                <td colspan="2"></td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+<div class="d-flex justify-content-end">
+    <span class="badge-posted" style="font-size: 1rem; padding: 0.5em 1em;">
+        <i class="bi bi-lock-fill me-1"></i> Posted & Locked
+    </span>
+</div>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}{% if product %}Edit Product{% else %}Add Product{% endif %} — InvSys{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2><i class="bi bi-box-fill me-2"></i>{% if product %}Edit Product{% else %}Add Product{% endif %}</h2>
+    <a href="{% url 'product_list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Back</a>
+</div>
+
+<div class="main-card">
+    {% if error %}
+    <div class="alert alert-danger"><i class="bi bi-exclamation-circle me-1"></i> {{ error }}</div>
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Product Name</label>
+                <input type="text" name="name" class="form-control"
+                       value="{% if product %}{{ product.name }}{% elif form_data %}{{ form_data.name }}{% endif %}"
+                       placeholder="e.g. Paracetamol 500mg" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">SKU</label>
+                <input type="text" name="sku" class="form-control"
+                       value="{% if product %}{{ product.sku }}{% elif form_data %}{{ form_data.sku }}{% endif %}"
+                       placeholder="e.g. MED-001" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Category</label>
+                <select name="category" class="form-select">
+                    {% for value, label in categories %}
+                        <option value="{{ value }}"
+                            {% if product and product.category == value %}selected{% endif %}
+                            {% if form_data and form_data.category == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Cost Price (₹)</label>
+                <input type="number" name="cost_price" class="form-control" step="0.01"
+                       value="{% if product %}{{ product.cost_price }}{% elif form_data %}{{ form_data.cost_price }}{% endif %}"
+                       placeholder="0.00" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Selling Price (₹)</label>
+                <input type="number" name="selling_price" class="form-control" step="0.01"
+                       value="{% if product %}{{ product.selling_price }}{% elif form_data %}{{ form_data.selling_price }}{% endif %}"
+                       placeholder="0.00" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Taxes</label>
+                <select name="taxes" class="form-select" multiple required size="3">
+                    {% for tax in taxes %}
+                        <option value="{{ tax.id }}"
+                            {% if product and tax in product.taxes.all %}selected{% endif %}>
+                            {{ tax.name }} ({{ tax.percentage }}%)
+                        </option>
+                    {% endfor %}
+                </select>
+                <small class="text-muted" style="font-size: 0.75rem;">Hold Ctrl/Cmd to select multiple taxes.</small>
+            </div>
+            <div class="col-md-6">
+                <div class="form-check form-switch mt-2">
+                    <input class="form-check-input" type="checkbox" name="is_lot_tracked" id="is_lot_tracked"
+                           {% if product and product.is_lot_tracked %}checked{% endif %}>
+                    <label class="form-check-label" for="is_lot_tracked">Enable Lot & Expiry Tracking</label>
+                </div>
+                <small class="text-muted">When enabled, lot number and expiry date are required during purchase.</small>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i> {% if product %}Update{% else %}Save{% endif %}</button>
+            <a href="{% url 'product_list' %}" class="btn btn-outline-secondary ms-2">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

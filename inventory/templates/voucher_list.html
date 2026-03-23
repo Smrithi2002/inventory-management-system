@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Voucher History — InvSys{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2><i class="bi bi-clock-history me-2"></i>Voucher History</h2>
+    <a href="{% url 'quick_purchase' %}" class="btn btn-success btn-sm shadow-sm"><i class="bi bi-lightning-fill me-1"></i> New Purchase</a>
+</div>
+
+<div class="main-card shadow-sm border-0">
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Invoice No.</th>
+                <th>Supplier</th>
+                <th>Date</th>
+                <th class="text-end">Total Amount (₹)</th>
+                <th class="text-center">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for v in vouchers %}
+            <tr>
+                <td class="text-muted small">PV-{{ v.id }}</td>
+                <td class="fw-bold text-primary">{{ v.invoice_number }}</td>
+                <td>{{ v.supplier.name }}</td>
+                <td>{{ v.date|date:"d-m-Y" }}</td>
+                <td class="text-end fw-semibold">₹{{ v.total_amount }}</td>
+                <td class="text-center">
+                    <a href="{% url 'voucher_detail' v.id %}" class="btn btn-outline-primary btn-sm rounded-pill" title="View Detailed Report">
+                        <i class="bi bi-eye-fill"></i> View
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center text-muted py-5">
+                    <i class="bi bi-receipt fs-1 d-block opacity-25 mb-2"></i>
+                    No posted vouchers found. <a href="{% url 'quick_purchase' %}" class="fw-bold">Make your first purchase</a>.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

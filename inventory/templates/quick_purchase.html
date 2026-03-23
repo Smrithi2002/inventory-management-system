@@ -1,0 +1,826 @@
+{% extends 'base.html' %}
+{% block title %}Quick Purchase — InvSys{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2><i class="bi bi-lightning-fill me-2 text-warning"></i>Quick Purchase</h2>
+    <a href="{% url 'inventory_list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>
+        Back</a>
+</div>
+
+<!-- Global Alert Area -->
+<div id="global-alert" class="alert alert-danger d-none animate__animated animate__fadeInDown sticky-top"
+    style="z-index: 1060; top: 10px;">
+    <i class="bi bi-exclamation-octagon-fill me-2"></i>
+    <span id="global-alert-text"></span>
+    <button type="button" class="btn-close float-end" onclick="this.parentElement.classList.add('d-none')"></button>
+</div>
+
+<div class="alert alert-info">
+    <i class="bi bi-info-circle-fill me-2"></i>
+    Entering details here will <strong>automatically</strong> create a voucher and update your stock levels immediately.
+</div>
+
+<form method="POST" id="quick-purchase-form" novalidate>
+    {% csrf_token %}
+    <!-- Section: Supplier & Invoice -->
+    <div class="main-card mb-4 border-top border-4 border-primary">
+        <h5 class="fw-bold mb-3">👤 1. Supplier & Invoice Details</h5>
+        <div class="row g-3">
+            <div class="col-md-5">
+                <div id="supplier-alert" class="alert alert-danger d-none py-2 mb-2 animate__animated animate__shakeX">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Please select a supplier to continue.
+                </div>
+                <label class="form-label d-flex justify-content-between">
+                    Select Supplier
+                    <button type="button" class="btn btn-link p-0 text-decoration-none small fw-bold"
+                        data-bs-toggle="modal" data-bs-target="#newSupplierModal">
+                        ➕ Add New Supplier
+                    </button>
+                </label>
+                <select name="supplier" class="form-select form-select-lg" id="quick_supplier_select">
+                    <option value="">— Select Supplier —</option>
+                    {% for supplier in suppliers %}
+                    <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Invoice Number</label>
+                <input type="text" name="invoice_number" class="form-control form-control-lg"
+                    placeholder="Optional (Auto-gen)">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Purchase Date</label>
+                <input type="text" class="form-control form-control-lg bg-light" value="{{ today }}" readonly>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section: Line Items -->
+    <div class="main-card mb-4 min-vh-50">
+        <div class="grid justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0">📦 2. Purchase Items</h5>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-danger" id="clear-items-btn" style="display: none;">
+                    <i class="bi bi-x-circle me-1"></i>Clear All
+                </button>
+            </div>
+        </div>
+
+        <!-- Fast Entry Tools -->
+        <div class="row g-2 mb-3 bg-light p-3 rounded border">
+            <div class="col-md-7 position-relative" id="search-container">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0">🔍</span>
+                    <input type="text" id="quick-search-input" class="form-control border-start-0 ps-0"
+                        placeholder="Type Product Name or SKU to add instantly..." autocomplete="off">
+                </div>
+                <!-- Custom Search Results Dropdown -->
+                <div id="search-results-dropdown" class="dropdown-menu w-100 shadow border-0 mt-1"
+                    style="display: none; max-height: 250px; overflow-y: auto; z-index: 1050; padding: 0;">
+                    <!-- Result items will be injected here -->
+                </div>
+                <small class="text-muted ms-1 mt-1 d-block">Try: Search 'Para'</small>
+            </div>
+            <div class="col-md-5 d-flex gap-2">
+                <button type="button" class="btn btn-primary flex-grow-1" data-bs-toggle="modal"
+                    data-bs-target="#bulkSelectModal">
+                    📋 Pick Multiple
+                </button>
+                <button type="button" class="btn btn-success flex-grow-1" id="add-new-row-btn">
+                    ➕ Add New Item
+                </button>
+                <button type="button" class="btn btn-outline-success flex-grow-1" data-bs-toggle="modal"
+                    data-bs-target="#bulkNewItemsModal">
+                    🧾 Bulk List New
+                </button>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle" id="items-table">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 35%;">Product Details</th>
+                        <th style="width: 10%;">Qty</th>
+                        <th style="width: 15%;">Unit Price (₹)</th>
+                        <th style="width: 15%;">Discount (₹)</th>
+                        <th style="width: 20%;">Lot / Expiry</th>
+                        <th style="width: 5%;"></th>
+                    </tr>
+                </thead>
+                <tbody id="items-tbody">
+                    <!-- Rows appear here -->
+                </tbody>
+                <tfoot class="bg-light fw-bold" id="table-footer" style="display: none;">
+                    <tr>
+                        <td colspan="2" class="text-end">Total Items: <span id="total-items-count">0</span></td>
+                        <td colspan="4" class="text-end text-primary fs-5">Estimated Total: ₹<span
+                                id="grand-total-val">0.00</span></td>
+                    </tr>
+                </tfoot>
+            </table>
+            <div id="empty-state" class="text-center py-5 text-muted">
+                <i class="bi bi-cart-x fs-1 opacity-25"></i>
+                <p class="mt-2">No items added yet. Search or use "Pick Multiple" to start.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Section -->
+    <div class="d-flex justify-content-end mb-5">
+        <button type="submit" class="btn btn-success btn-lg px-5 shadow-sm" id="complete-btn" disabled>
+            <i class="bi bi-cart-check-fill me-2"></i> COMPLETE PURCHASE
+        </button>
+    </div>
+</form>
+
+<!-- Modal: Bulk Select Existing Products -->
+<div class="modal fade" id="bulkSelectModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title"><i class="bi bi-list-check me-2"></i>Select Multiple Products</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="p-3 border-bottom bg-light">
+                <input type="text" id="modal-product-search" class="form-control" placeholder="Filter list...">
+            </div>
+            <div class="modal-body p-0">
+                <table class="table table-hover mb-0" id="bulk-product-table">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" class="form-check-input"
+                                    id="check-all-products"></th>
+                            <th>Product Name</th>
+                            <th>SKU</th>
+                            <th>Current Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr class="product-selection-row" data-name="{{ product.name|lower }}"
+                            data-sku="{{ product.sku|lower }}">
+                            <td><input type="checkbox" class="form-check-input product-check" value="{{ product.id }}"
+                                    data-name="{{ product.name }}" data-sku="{{ product.sku }}"
+                                    data-lot="{{ product.is_lot_tracked|yesno:'true,false' }}"></td>
+                            <td class="fw-semibold">{{ product.name }}</td>
+                            <td><code>{{ product.sku }}</code></td>
+                            <td>{{ product.total_stock }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer bg-light">
+                <span class="me-auto text-muted small"><span id="selected-count">0</span> products selected</span>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary px-4" id="confirm-bulk-add">Add Selected Items</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: New Supplier -->
+<div class="modal fade" id="newSupplierModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle me-2"></i>Register New Supplier</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="modal-error" class="alert alert-danger d-none"></div>
+
+                <div class="mb-3">
+                    <label class="form-label">Supplier Name *</label>
+                    <input type="text" id="new-supplier-name" class="form-control" placeholder="Business Name" required>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Contact</label>
+                        <input type="text" id="new-supplier-contact" class="form-control" placeholder="Phone">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" id="new-supplier-email" class="form-control" placeholder="Email">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-link link-secondary text-decoration-none"
+                    data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary px-4" id="save-supplier-btn">Save Supplier</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Templates -->
+<template id="existing-row-template">
+    <tr class="item-row existing-item">
+        <td>
+            <input type="hidden" name="product[]" class="product-id-input">
+            <div class="fw-bold product-name-display text-dark"></div>
+            <div class="text-muted small product-sku-display"></div>
+        </td>
+        <td><input type="number" name="quantity[]" class="form-control qty-input" min="1" value="1" required></td>
+        <td><input type="number" name="price[]" class="form-control price-input" step="0.01" min="0" required></td>
+        <td><input type="number" name="discount[]" class="form-control discount-input" step="0.01" min="0" value="0">
+        </td>
+        <td>
+            <div class="lot-fields" style="display: none;">
+                <input type="text" name="lot_number[]" class="form-control form-control-sm mb-1" placeholder="Lot #">
+                <input type="date" name="expiry_date[]" class="form-control form-control-sm">
+            </div>
+            <span class="text-muted small lot-not-required opacity-50">Not tracked</span>
+        </td>
+        <td>
+            <button type="button" class="btn btn-sm btn-outline-danger remove-row border-0"><i
+                    class="bi bi-trash"></i></button>
+        </td>
+    </tr>
+</template>
+
+<template id="new-product-row-template">
+    <tr class="item-row new-item">
+        <td>
+            <input type="hidden" name="product[]" value="NEW">
+            <div class="bg-light p-2 rounded border-start border-4 border-success">
+                <input type="text" name="new_name[]" class="form-control form-control-sm mb-1 fw-bold"
+                    placeholder="Product Name" required>
+                <div class="row g-1">
+                    <div class="col-6"><input type="text" name="new_sku[]" class="form-control form-control-sm"
+                            placeholder="SKU" required></div>
+                    <div class="col-6">
+                        <input type="hidden" name="new_taxes[]" class="new-taxes-hidden">
+                        <select class="form-select form-select-sm tax-selector" multiple size="2" required
+                            title="Hold Ctrl/Cmd to select multiple">
+                            {% for tax in taxes %}
+                            <option value="{{ tax.id }}">{{ tax.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-check form-switch mt-1 small">
+                    <input class="form-check-input new-lot-toggle" type="checkbox" checked>
+                    <label class="form-check-label">Lot Controlled</label>
+                </div>
+            </div>
+        </td>
+        <td><input type="number" name="quantity[]" class="form-control qty-input" min="1" value="1" required></td>
+        <td><input type="number" name="price[]" class="form-control price-input" step="0.01" min="0" required></td>
+        <td><input type="number" name="discount[]" class="form-control discount-input" step="0.01" min="0" value="0">
+        </td>
+        <td>
+            <div class="lot-fields">
+                <input type="text" name="lot_number[]" class="form-control form-control-sm mb-1" placeholder="Lot #">
+                <input type="date" name="expiry_date[]" class="form-control form-control-sm">
+            </div>
+            <span class="text-muted small lot-not-required" style="display: none;">Not tracked</span>
+        </td>
+        <td class="text-nowrap text-center">
+            <button type="button" class="btn btn-sm btn-outline-primary add-next-row border-0 me-1"
+                title="Add Another New Item" style="padding: 0.25rem 0.5rem;">
+                <i class="bi bi-plus-circle-fill fs-5"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger remove-row border-0" title="Remove Item"
+                style="padding: 0.25rem 0.5rem;">
+                <i class="bi bi-trash fs-5"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const tbody = document.getElementById('items-tbody');
+    const quickSearch = document.getElementById('quick-search-input');
+    const bulkSelectModal = new bootstrap.Modal(document.getElementById('bulkSelectModal'));
+    const completeBtn = document.getElementById('complete-btn');
+    const emptyState = document.getElementById('empty-state');
+    const tableFooter = document.getElementById('table-footer');
+
+    // Internal Product List for quick search (built from the modal rows)
+    const productData = [];
+    document.querySelectorAll('.product-selection-row').forEach(row => {
+        const check = row.querySelector('.product-check');
+        productData.push({
+            id: check.value,
+            name: check.dataset.name,
+            sku: check.dataset.sku,
+            lotTracked: check.dataset.lot === 'true'
+        });
+    });
+
+    // 1. Live Search Logic
+    const dropdown = document.getElementById('search-results-dropdown');
+
+    quickSearch.addEventListener('input', function () {
+        const term = this.value.trim().toLowerCase();
+        if (term.length < 2) {
+            dropdown.style.display = 'none';
+            return;
+        }
+
+        const matches = productData.filter(p =>
+            p.name.toLowerCase().includes(term) ||
+            p.sku.toLowerCase().includes(term)
+        );
+
+        if (matches.length > 0) {
+            dropdown.innerHTML = matches.map(p => `
+                <a href="#" class="dropdown-item p-3 border-bottom search-result-item" 
+                   data-id="${p.id}" data-name="${p.name}" data-sku="${p.sku}" data-lot="${p.lotTracked}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-truncate" style="max-width: 70%;">
+                            <div class="fw-bold text-dark">${p.name}</div>
+                            <small class="text-muted">${p.sku}</small>
+                        </div>
+                        <span class="badge bg-light text-primary border rounded-pill">Select ↩</span>
+                    </div>
+                </a>
+            `).join('');
+            dropdown.style.display = 'block';
+        } else {
+            dropdown.style.display = 'none';
+        }
+    });
+
+    // Handle selection from dropdown
+    dropdown.addEventListener('click', function (e) {
+        e.preventDefault();
+        const item = e.target.closest('.search-result-item');
+        if (item) {
+            addExistingProduct({
+                id: item.dataset.id,
+                name: item.dataset.name,
+                sku: item.dataset.sku,
+                lotTracked: item.dataset.lot === 'true'
+            });
+            quickSearch.value = '';
+            dropdown.style.display = 'none';
+            quickSearch.focus();
+        }
+    });
+
+    // Close dropdown on outside click
+    document.addEventListener('click', function (e) {
+        if (!document.getElementById('search-container').contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+
+    quickSearch.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            // If there's an exact match in the data, add it
+            // Otherwise, if the dropdown is open, add the first item
+            const val = this.value.trim().toLowerCase();
+            const exactMatch = productData.find(p => p.sku.toLowerCase() === val || p.name.toLowerCase() === val);
+
+            if (exactMatch) {
+                addExistingProduct(exactMatch);
+                this.value = '';
+                dropdown.style.display = 'none';
+            } else if (dropdown.style.display === 'block') {
+                const firstItem = dropdown.querySelector('.search-result-item');
+                if (firstItem) firstItem.click();
+            }
+        }
+    });
+
+    // 2. Bulk Add Confirm
+    document.getElementById('confirm-bulk-add').addEventListener('click', () => {
+        document.querySelectorAll('.product-check:checked').forEach(check => {
+            addExistingProduct({
+                id: check.value,
+                name: check.dataset.name,
+                sku: check.dataset.sku,
+                lotTracked: check.dataset.lot === 'true'
+            });
+            check.checked = false;
+        });
+        bulkSelectModal.hide();
+        updateModalStats();
+    });
+
+    // 3. Row Logic
+    function addExistingProduct(p) {
+        const template = document.getElementById('existing-row-template');
+        const clone = template.content.cloneNode(true);
+        const row = clone.querySelector('tr');
+
+        row.querySelector('.product-id-input').value = p.id;
+        row.querySelector('.product-name-display').textContent = p.name;
+        row.querySelector('.product-sku-display').textContent = p.sku;
+
+        const lotFields = row.querySelector('.lot-fields');
+        const lotNotReq = row.querySelector('.lot-not-required');
+        lotFields.style.display = p.lotTracked ? 'block' : 'none';
+        lotNotReq.style.display = p.lotTracked ? 'none' : 'block';
+        row.querySelector('input[name="lot_number[]"]').required = p.lotTracked;
+        row.querySelector('input[name="expiry_date[]"]').required = p.lotTracked;
+        tbody.appendChild(row);
+        updateUI();
+    }
+
+    // Auto-load selected product from the "Restock" action
+    {% if selected_product %}
+    document.addEventListener('DOMContentLoaded', () => {
+        addExistingProduct({
+            id: '{{ selected_product.id }}',
+            name: '{{ selected_product.name|escapejs }}',
+            sku: '{{ selected_product.sku|escapejs }}',
+            lotTracked: {{ selected_product.is_lot_tracked|yesno:"true,false" }}
+        });
+    });
+    {% endif %}
+
+    document.getElementById('add-new-row-btn').addEventListener('click', () => {
+        const template = document.getElementById('new-product-row-template');
+        const clone = template.content.cloneNode(true);
+        tbody.appendChild(clone);
+        updateUI();
+    });
+
+    // 4. Supplier AJAX
+    document.getElementById('save-supplier-btn').addEventListener('click', function () {
+        const name = document.getElementById('new-supplier-name').value.trim();
+        const contact = document.getElementById('new-supplier-contact').value.trim();
+        const email = document.getElementById('new-supplier-email').value.trim();
+        const errorDiv = document.getElementById('modal-error');
+        if (!name) return;
+
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('contact', contact);
+        formData.append('email', email);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch("{% url 'api_add_supplier' %}", { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const select = document.getElementById('quick_supplier_select');
+                    select.add(new Option(data.name, data.id, true, true));
+                    bootstrap.Modal.getInstance(document.getElementById('newSupplierModal')).hide();
+                    errorDiv.classList.add('d-none');
+                } else {
+                    errorDiv.textContent = data.error;
+                    errorDiv.classList.remove('d-none');
+                }
+            });
+    });
+
+    // 5. Calculations & UI State
+    function updateUI() {
+        const rows = tbody.querySelectorAll('.item-row');
+        const hasItems = rows.length > 0;
+
+        emptyState.style.display = hasItems ? 'none' : 'block';
+        tableFooter.style.display = hasItems ? 'table-footer-group' : 'none';
+        document.getElementById('clear-items-btn').style.display = hasItems ? 'block' : 'none';
+        completeBtn.disabled = !hasItems;
+
+        calculateTotals();
+    }
+
+    function calculateTotals() {
+        const rows = tbody.querySelectorAll('.item-row');
+        let grandTotal = 0;
+        let itemCount = 0;
+
+        rows.forEach(row => {
+            const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+            const price = parseFloat(row.querySelector('.price-input').value) || 0;
+            const disc = parseFloat(row.querySelector('.discount-input').value) || 0;
+            grandTotal += (qty * price) - disc;
+            itemCount += qty;
+        });
+
+        document.getElementById('grand-total-val').textContent = grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 1 });
+        document.getElementById('total-items-count').textContent = itemCount;
+    }
+
+    tbody.addEventListener('input', (e) => {
+        if (e.target.matches('.qty-input, .price-input, .discount-input')) calculateTotals();
+        if (e.target.matches('.new-lot-toggle')) {
+            const row = e.target.closest('.item-row');
+            const checked = e.target.checked;
+            row.querySelector('.lot-fields').style.display = checked ? 'block' : 'none';
+            row.querySelector('.lot-not-required').style.display = checked ? 'none' : 'block';
+            row.querySelector('input[name="lot_number[]"]').required = checked;
+            row.querySelector('input[name="expiry_date[]"]').required = checked;
+        }
+    });
+
+    tbody.addEventListener('click', (e) => {
+        if (e.target.closest('.remove-row')) {
+            e.target.closest('.item-row').remove();
+            updateUI();
+        } else if (e.target.closest('.add-next-row')) {
+            // Re-use the existing 'Add New Item' logic
+            document.getElementById('add-new-row-btn').click();
+            // Automatically focus the new row's first input field for fast typing
+            setTimeout(() => {
+                const newRows = tbody.querySelectorAll('.new-item');
+                if (newRows.length > 0) {
+                    newRows[newRows.length - 1].querySelector('input[name="new_name[]"]').focus();
+                }
+            }, 10);
+        }
+    });
+
+    document.getElementById('clear-items-btn').addEventListener('click', () => {
+        if (confirm('Clear all items?')) {
+            tbody.innerHTML = '';
+            localStorage.removeItem(DRAFT_KEY);
+            updateUI();
+        }
+    });
+
+    // Modal Filters
+    document.getElementById('modal-product-search').addEventListener('input', function () {
+        const term = this.value.toLowerCase();
+        document.querySelectorAll('.product-selection-row').forEach(row => {
+            const match = row.dataset.name.includes(term) || row.dataset.sku.includes(term);
+            row.style.display = match ? '' : 'none';
+        });
+    });
+
+    function updateModalStats() {
+        document.getElementById('selected-count').textContent = document.querySelectorAll('.product-check:checked').length;
+    }
+    document.getElementById('bulk-product-table').addEventListener('change', updateModalStats);
+    document.getElementById('check-all-products').addEventListener('change', function () {
+        document.querySelectorAll('.product-check').forEach(c => {
+            if (c.closest('tr').style.display !== 'none') c.checked = this.checked;
+        });
+        updateModalStats();
+    });
+
+    // Supplier Validation & AJAX Submit
+    const purchaseForm = document.getElementById('quick-purchase-form');
+    
+    function showGlobalError(msg) {
+        const alert = document.getElementById('global-alert');
+        const text = document.getElementById('global-alert-text');
+        text.textContent = msg;
+        alert.classList.remove('d-none');
+        alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    purchaseForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        
+        const supplierSelect = document.getElementById('quick_supplier_select');
+        const supplierAlert = document.getElementById('supplier-alert');
+        const alertArea = document.getElementById('global-alert');
+        
+        // Hide previous errors
+        supplierAlert.classList.add('d-none');
+        alertArea.classList.add('d-none');
+        supplierSelect.classList.remove('is-invalid');
+
+        if (!supplierSelect.value) {
+            supplierAlert.classList.remove('d-none');
+            supplierSelect.classList.add('is-invalid');
+            supplierSelect.focus();
+            supplierAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+
+        // Prepare Item Taxes for POST
+        document.querySelectorAll('.item-row.new-item').forEach(row => {
+            const select = row.querySelector('.tax-selector');
+            const hidden = row.querySelector('.new-taxes-hidden');
+            if (select && hidden) {
+                hidden.value = Array.from(select.selectedOptions).map(o => o.value).join(',');
+            }
+        });
+
+        // 🟢 Start AJAX Submission
+        completeBtn.disabled = true;
+        const originalBtnLabel = completeBtn.innerHTML;
+        completeBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Posting Purchase...';
+
+        const formData = new FormData(this);
+
+        fetch(window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // Success! Clear draft and move to inventory
+                localStorage.removeItem(DRAFT_KEY);
+                window.location.href = data.redirect;
+            } else {
+                // Error! Show message but DO NOT RELOAD
+                showGlobalError(data.error);
+                completeBtn.disabled = false;
+                completeBtn.innerHTML = originalBtnLabel;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showGlobalError("A server error occurred. Please check your network connection.");
+            completeBtn.disabled = false;
+            completeBtn.innerHTML = originalBtnLabel;
+        });
+    });
+
+    // Bulk New List Logic
+    document.getElementById('confirm-bulk-new').addEventListener('click', () => {
+        const text = document.getElementById('bulk-new-textarea').value.trim();
+        if (!text) return;
+
+        const lines = text.split('\n');
+        lines.forEach(line => {
+            if (!line.trim()) return;
+            const parts = line.split(',');
+            const name = parts[0].trim();
+            const sku = parts.length > 1 ? parts[1].trim() : '';
+
+            if (name) {
+                const template = document.getElementById('new-product-row-template');
+                const clone = template.content.cloneNode(true);
+                clone.querySelector('input[name="new_name[]"]').value = name;
+                clone.querySelector('input[name="new_sku[]"]').value = sku;
+                tbody.appendChild(clone);
+            }
+        });
+
+        document.getElementById('bulk-new-textarea').value = '';
+        bootstrap.Modal.getInstance(document.getElementById('bulkNewItemsModal')).hide();
+        updateUI();
+    });
+    // 6. Persistence Logic (Save/Load Draft)
+    const DRAFT_KEY = 'quick_purchase_draft';
+    let isLoaded = false;
+
+    function saveDraft() {
+        if (!isLoaded) return;
+        const rows = [];
+        tbody.querySelectorAll('.item-row').forEach(row => {
+            const isNew = row.classList.contains('new-item');
+            const rowData = {
+                isNew: isNew,
+                quantity: row.querySelector('.qty-input').value,
+                price: row.querySelector('.price-input').value,
+                discount: row.querySelector('.discount-input').value,
+                lotNumber: row.querySelector('input[name="lot_number[]"]').value,
+                expiryDate: row.querySelector('input[name="expiry_date[]"]').value,
+            };
+
+            if (isNew) {
+                rowData.name = row.querySelector('input[name="new_name[]"]').value;
+                rowData.sku = row.querySelector('input[name="new_sku[]"]').value;
+                const taxSelect = row.querySelector('.tax-selector');
+                rowData.taxes = Array.from(taxSelect.selectedOptions).map(o => o.value);
+                rowData.lotControlled = row.querySelector('.new-lot-toggle').checked;
+            } else {
+                rowData.id = row.querySelector('.product-id-input').value;
+                rowData.name = row.querySelector('.product-name-display').textContent;
+                rowData.sku = row.querySelector('.product-sku-display').textContent;
+                rowData.lotTracked = row.querySelector('.lot-fields').style.display !== 'none';
+            }
+            rows.push(rowData);
+        });
+
+        const draft = {
+            supplierId: document.getElementById('quick_supplier_select').value,
+            invoiceNumber: document.querySelector('input[name="invoice_number"]').value,
+            items: rows
+        };
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    }
+
+    function loadDraft() {
+        const saved = localStorage.getItem(DRAFT_KEY);
+        if (!saved) return;
+        try {
+            const draft = JSON.parse(saved);
+            if (draft.supplierId) document.getElementById('quick_supplier_select').value = draft.supplierId;
+            if (draft.invoiceNumber) document.querySelector('input[name="invoice_number"]').value = draft.invoiceNumber;
+
+            draft.items.forEach(item => {
+                if (item.isNew) {
+                    const template = document.getElementById('new-product-row-template');
+                    const clone = template.content.cloneNode(true);
+                    const row = clone.querySelector('tr');
+                    row.querySelector('input[name="new_name[]"]').value = item.name;
+                    row.querySelector('input[name="new_sku[]"]').value = item.sku;
+                    row.querySelector('.qty-input').value = item.quantity;
+                    row.querySelector('.price-input').value = item.price;
+                    row.querySelector('.discount-input').value = item.discount;
+                    row.querySelector('input[name="lot_number[]"]').value = item.lotNumber;
+                    row.querySelector('input[name="expiry_date[]"]').value = item.expiryDate;
+
+                    const lotToggle = row.querySelector('.new-lot-toggle');
+                    lotToggle.checked = item.lotControlled;
+                    row.querySelector('.lot-fields').style.display = item.lotControlled ? 'block' : 'none';
+                    row.querySelector('.lot-not-required').style.display = item.lotControlled ? 'none' : 'block';
+
+                    const taxSelect = row.querySelector('.tax-selector');
+                    item.taxes.forEach(val => {
+                        const opt = taxSelect.querySelector(`option[value="${val}"]`);
+                        if (opt) opt.selected = true;
+                    });
+                    tbody.appendChild(row);
+                } else {
+                    addExistingProduct({
+                        id: item.id,
+                        name: item.name,
+                        sku: item.sku,
+                        lotTracked: item.lotTracked
+                    });
+                    const lastRow = tbody.lastElementChild;
+                    lastRow.querySelector('.qty-input').value = item.quantity;
+                    lastRow.querySelector('.price-input').value = item.price;
+                    lastRow.querySelector('.discount-input').value = item.discount;
+                    lastRow.querySelector('input[name="lot_number[]"]').value = item.lotNumber;
+                    lastRow.querySelector('input[name="expiry_date[]"]').value = item.expiryDate;
+                }
+            });
+            updateUI();
+            isLoaded = true;
+        } catch (e) {
+            console.error("Error loading draft", e);
+            isLoaded = true; // Still allow saving even if load failed
+        }
+    }
+
+    // Trigger save on any interaction
+    purchaseForm.addEventListener('input', saveDraft);
+    purchaseForm.addEventListener('change', saveDraft);
+    tbody.addEventListener('click', (e) => {
+        if (e.target.closest('.remove-row, .add-next-row')) setTimeout(saveDraft, 50);
+    });
+
+    // Clear draft only on successful submit detector
+    purchaseForm.addEventListener('submit', function (e) {
+        if (document.getElementById('quick_supplier_select').value) {
+            isSubmitting = true;
+        }
+    });
+
+    // Clear draft if a success message exists (meaning the POST was successful)
+    // We check for the presence of a success alert on the page
+    function checkSuccessAndClear() {
+        const successAlert = document.querySelector('.alert-success');
+        if (successAlert && successAlert.textContent.includes('Purchase successful')) {
+            localStorage.removeItem(DRAFT_KEY);
+        }
+    }
+
+    // Run load on start
+    window.addEventListener('load', () => {
+        checkSuccessAndClear();
+        // Give a small delay to ensure everything (like modals/data) is initialized
+        loadDraft();
+    });
+
+    // Clear supplier alert when selection changes
+    document.getElementById('quick_supplier_select').addEventListener('change', function () {
+        if (this.value) {
+            document.getElementById('supplier-alert').classList.add('d-none');
+            this.classList.remove('is-invalid');
+        }
+    });
+</script>
+
+<!-- Bulk New Items Modal -->
+<div class="modal fade" id="bulkNewItemsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">📋 Bulk Add New Products</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-2">Paste your list below. Format: <b>Product Name, SKU</b> (one per line)
+                </p>
+                <textarea id="bulk-new-textarea" class="form-control" rows="10"
+                    placeholder="Example:&#10;Paracetamol 500mg, PARA500&#10;Amoxicillin 250mg, AMOX250"></textarea>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirm-bulk-new">➕ Create All Rows</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+{% endblock %}

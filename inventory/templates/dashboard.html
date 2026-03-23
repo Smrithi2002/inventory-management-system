@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — InvSys{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2><i class="bi bi-grid-1x2-fill me-2"></i>Dashboard</h2>
+    <span class="badge bg-light text-dark border" style="font-size: 0.8rem;">v2.0</span>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="bi bi-box-fill"></i></div>
+            <div>
+                <div class="stat-value">{{ total_products }}</div>
+                <div class="stat-label">Active Products</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="bi bi-truck"></i></div>
+            <div>
+                <div class="stat-value">{{ total_supplier }}</div>
+                <div class="stat-label">Suppliers</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="bi bi-receipt"></i></div>
+            <div>
+                <div class="stat-value">{{ total_vouchers }}</div>
+                <div class="stat-label">Vouchers</div>
+            </div>
+        </div>
+    </div>
+    <!-- <div class="col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon yellow"><i class="bi bi-clock-history"></i></div>
+            <div>
+                <div class="stat-value">{{ pending_vouchers }}</div>
+                <div class="stat-label">Pending</div>
+            </div>
+        </div>
+    </div> -->
+    <div class="col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="bi bi-clipboard-data-fill"></i></div>
+            <div>
+                <div class="stat-value">{{ total_inventory_items }}</div>
+                <div class="stat-label">Stock Items</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-lg-2">
+        <div class="stat-card">
+            <div class="stat-icon red"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            <div>
+                <div class="stat-value">{{ expired_lots }}</div>
+                <div class="stat-label">Expired Lots</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="main-card">
+    <h5 class="fw-bold mb-3">Quick Actions</h5>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'add_product' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> New Product</a>
+        <a href="{% url 'quick_purchase' %}" class="btn btn-success"><i class="bi bi-lightning-fill me-1"></i> Quick Purchase</a>
+        <a href="{% url 'add_tax' %}" class="btn btn-outline-secondary"><i class="bi bi-percent me-1"></i> Add Tax</a>
+        <a href="{% url 'add_supplier' %}" class="btn btn-outline-secondary"><i class="bi bi-truck me-1"></i> Add Supplier</a>
+        <a href="{% url 'inventory_list' %}" class="btn btn-outline-secondary"><i class="bi bi-clipboard-data-fill me-1"></i> View Inventory</a>
+    </div>
+</div>
+{% endblock %}
